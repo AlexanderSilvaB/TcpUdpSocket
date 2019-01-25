@@ -1,5 +1,7 @@
 # Created by https://www.gitignore.io/api/cmake,visualstudiocode
 
+build/
+
 ### CMake ###
 CMakeCache.txt
 CMakeFiles
