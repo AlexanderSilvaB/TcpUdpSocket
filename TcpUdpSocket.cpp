@@ -37,7 +37,11 @@ TcpUdpSocket::TcpUdpSocket(int port, char* address, bool udp, bool broadcast, bo
 		struct timeval tv;
 		tv.tv_sec = 0;
 		tv.tv_usec = timeout*1000;
+		#ifdef WIN32
+		setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
+		#else
 		setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+		#endif
 	}
 
 	//set up bind address
@@ -109,7 +113,11 @@ bool TcpUdpSocket::wait()
 	if(client != -1)
 		return true;
 	unsigned int clientlen = sizeof(outaddr);
+	#ifdef WIN32
+	client = accept(sock, (struct sockaddr *) &outaddr, (int*)&clientlen);
+	#else
 	client = accept(sock, (struct sockaddr *) &outaddr, &clientlen);
+	#endif
 	return client >= 0;
 }
 
@@ -117,7 +125,12 @@ void TcpUdpSocket::disconnect()
 {
 	if(client != -1)
 	{
+		#ifdef WIN32
+		closesocket(client);
+		WSACleanup();
+		#else
 		close(client);
+		#endif
 	}	
 	client = -1;
 }
@@ -162,7 +175,11 @@ long TcpUdpSocket::receive(char* msg, int msgsize)
 	}
 	else
 	{
+		#ifdef WIN32
+		int retval = recv(client, msg, msgsize, 0);
+		#else
 		int retval = read(client, msg, msgsize);
+		#endif
 		return retval;
 	}
 }
@@ -177,7 +194,11 @@ long TcpUdpSocket::send(const char* msg, int msgsize)
 	if(client == -1)
 		return sendto(sock, msg, msgsize, 0, (struct sockaddr *)&outaddr, sizeof(outaddr));
 	else
+		#ifdef WIN32
+		return sendto(client, msg, msgsize, 0, (struct sockaddr *)&outaddr, sizeof(outaddr));
+		#else
 		return write(client, msg, msgsize);
+		#endif
 }
 
 long TcpUdpSocket::sendTo(const char* msg, int msgsize, const char* addr)
